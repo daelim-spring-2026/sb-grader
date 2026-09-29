@@ -15,6 +15,21 @@ RESULT_DIR = "build/test-results/test"
 WEEK_RE = re.compile(r"(?:^|\.)week(\d+)(?:\.|$)", re.I)
 
 
+def label_of(week):
+    """주차 이름. .grader/weekNN/label.txt 가 있으면 그 이름을 쓴다."""
+    if week == "??":
+        return "기타"
+    path = os.path.join(".grader", f"week{week}", "label.txt")
+    try:
+        with open(path, encoding="utf-8") as f:
+            name = f.read().strip()
+        if name:
+            return name
+    except OSError:
+        pass
+    return f"{int(week)}주차"
+
+
 def collect():
     """[(week, 표시이름, 통과여부, 메모)] 를 돌려준다."""
     rows = []
@@ -57,18 +72,16 @@ def main():
         if ok:
             w[0] += 1
 
-    md = ["# 채점 결과", "", f"**{passed} / {total} 통과 · {score}점**", "", "## 주차별", "",
-          "| 주차 | 통과 | 상태 |", "|---|---|---|"]
+    md = ["# 채점 결과", "", f"**{passed} / {total} 통과 · {score}점**", "", "## 구분별", "",
+          "| 구분 | 통과 | 상태 |", "|---|---|---|"]
     for week in sorted(weeks):
         p, t = weeks[week]
         mark = "✅" if p == t else ("⚠️" if p else "❌")
-        label = f"{int(week)}주차" if week != "??" else "기타"
-        md.append(f"| {label} | {p} / {t} | {mark} |")
+        md.append(f"| {label_of(week)} | {p} / {t} | {mark} |")
 
-    md += ["", "## 항목별", "", "| 주차 | 테스트 | 결과 | 메모 |", "|---|---|---|---|"]
+    md += ["", "## 항목별", "", "| 구분 | 테스트 | 결과 | 메모 |", "|---|---|---|---|"]
     for week, name, ok, note in rows:
-        label = f"{int(week)}주차" if week != "??" else "기타"
-        md.append(f"| {label} | {name} | {'✅ 통과' if ok else '❌ 실패'} | {note} |")
+        md.append(f"| {label_of(week)} | {name} | {'✅ 통과' if ok else '❌ 실패'} | {note} |")
     md.append("")
 
     head = [f"WEEK=week{w} PASSED={weeks[w][0]} TOTAL={weeks[w][1]}" for w in sorted(weeks)]
