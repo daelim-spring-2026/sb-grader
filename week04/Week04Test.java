@@ -72,12 +72,14 @@ class Week04Test {
                 .andExpect(jsonPath("$.content").value("content"));
     }
 
-    @DisplayName("[4주차] PUT /api/articles/{id} 로 수정하면 조회 결과가 바뀐다")
+    // 수업에서 수정 대상은 내용(content)뿐이다. 제목은 바꾸지 않으므로 채점하지 않는다.
+    // 요청에는 title 도 함께 보낸다. 제목까지 수정하도록 만든 학생도 그대로 통과한다.
+    @DisplayName("[4주차] PUT /api/articles/{id} 로 수정하면 내용이 바뀐다")
     @Test
     void updateArticle() throws Exception {
         long id = create("old" + System.nanoTime(), "old content");
-        String newTitle = "new" + System.nanoTime();
-        String body = "{\"title\":\"" + newTitle + "\",\"content\":\"new content\"}";
+        String newContent = "new content " + System.nanoTime();
+        String body = "{\"title\":\"new title\",\"content\":\"" + newContent + "\"}";
 
         mockMvc.perform(put("/api/articles/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,8 +88,7 @@ class Week04Test {
 
         mockMvc.perform(get("/api/articles/{id}", id).accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value(newTitle))
-                .andExpect(jsonPath("$.content").value("new content"));
+                .andExpect(jsonPath("$.content").value(newContent));
     }
 
     @DisplayName("[4주차] DELETE /api/articles/{id} 로 삭제하면 목록에서 사라진다")
