@@ -33,7 +33,7 @@ SpringBoot 과목 실습 저장소(`sb-<학번>`)의 GitHub Actions 가 **매번
 
 ```java
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)  // CH08 시큐리티 적용 후에도 로그인 없이 채점
 class WeekNNTest {
     @Autowired MockMvc mockMvc;
 }

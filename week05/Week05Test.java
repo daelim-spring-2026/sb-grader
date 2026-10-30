@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * 단, 작성시각 항목만은 JPA 를 타야 값이 채워지므로 등록 API 를 쓴다.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)  // CH08 시큐리티 적용 후에도 로그인 없이 채점
 class Week05Test {
 
     @Autowired MockMvc mockMvc;

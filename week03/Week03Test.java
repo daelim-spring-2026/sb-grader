@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * HTTP 로만 검증한다. 학생의 패키지명·클래스명·구현 방식에 의존하지 않는다.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)  // CH08 시큐리티 적용 후에도 로그인 없이 채점
 class Week03Test {
 
     @Autowired

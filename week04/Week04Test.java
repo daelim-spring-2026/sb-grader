@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 따라서 DB 에 남아 있는 다른 데이터의 영향을 받지 않는다.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)  // CH08 시큐리티 적용 후에도 로그인 없이 채점
 class Week04Test {
 
     @Autowired
