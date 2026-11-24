@@ -3,6 +3,7 @@ package com.example.blog.grader.week12;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,9 +25,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 /**
  * CH10 구글 로그인 — 각자 구글 클라우드에 OAuth 클라이언트를 만들었는지 본다.
  *
- * client-id 는 비밀값이 아니다(로그인할 때 주소창에 그대로 보인다). 그래서 application.yml 에
- * 커밋하게 하고, client-secret 만 application-local.yml 에 둔다.
- * secret 은 CI 에 없으므로 실제 로그인은 확인하지 않는다(스크린샷 제출로 확인).
+ * 학생 저장소(private)에 client-id · client-secret 을 모두 커밋한다(2026-11-24 결정).
+ * 구글 로그인 없이 확인할 수 있는 것까지만 본다. 실제 로그인 성공은 스크린샷 제출로 확인.
  *
  * 이 클래스만 시큐리티 필터를 켠다. /oauth2/authorization/google 은 필터가 처리하기 때문이다.
  */
@@ -42,6 +42,17 @@ class Week12Test {
 
     @Autowired
     MockMvc mockMvc;
+
+    /** 앱 설정값. 학생 코드가 아니라 설정만 읽는다. */
+    @Value("${spring.security.oauth2.client.registration.google.client-secret:}")
+    String clientSecret;
+
+    private static HttpClient http() {
+        return HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
+    }
 
     /** 앱이 구글로 보낼 때 쓰는 client_id 를 꺼낸다. 앱 내부 클래스에 의존하지 않는다. */
     private String 내_client_id() throws Exception {
@@ -72,11 +83,7 @@ class Week12Test {
                 + "&client_id=" + URLEncoder.encode(id, StandardCharsets.UTF_8)
                 + "&redirect_uri=" + URLEncoder.encode(REDIRECT_URI, StandardCharsets.UTF_8);
 
-        HttpClient http = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.NEVER)
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-        HttpResponse<Void> r = http.send(
+        HttpResponse<Void> r = http().send(
                 HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(15)).GET().build(),
                 HttpResponse.BodyHandlers.discarding());
 
@@ -85,5 +92,28 @@ class Week12Test {
         assertTrue(r.statusCode() == 302 && !next.contains("/signin/oauth/error") && !next.isEmpty(),
                 "구글이 이 client-id 또는 redirect URI 를 거부했습니다. 구글 인증 플랫폼 > 클라이언트에서 "
                         + "client-id 가 맞는지, 승인된 리디렉션 URI 에 " + REDIRECT_URI + " 가 있는지 확인하세요.");
+    }
+
+    @Test
+    @DisplayName("[CH10] client-secret 이 이 client-id 의 보안 비밀번호와 일치한다")
+    void secretMatches() throws Exception {
+        String id = 내_client_id();
+        // 가짜 인가 코드로 토큰을 요청한다. 구글은 client 인증을 먼저 하므로
+        //   secret 이 맞으면 invalid_grant(코드가 틀림), 틀리면 invalid_client 를 돌려준다.
+        String form = "grant_type=authorization_code&code=grader-fake-code"
+                + "&redirect_uri=" + URLEncoder.encode(REDIRECT_URI, StandardCharsets.UTF_8)
+                + "&client_id=" + URLEncoder.encode(id, StandardCharsets.UTF_8)
+                + "&client_secret=" + URLEncoder.encode(clientSecret == null ? "" : clientSecret, StandardCharsets.UTF_8);
+        HttpResponse<String> r = http().send(
+                HttpRequest.newBuilder(URI.create("https://oauth2.googleapis.com/token"))
+                        .timeout(Duration.ofSeconds(15))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(form)).build(),
+                HttpResponse.BodyHandlers.ofString());
+
+        assertTrue(r.body().contains("\"invalid_grant\""),
+                "구글이 client-secret 을 거부했습니다 (응답: " + r.body().replaceAll("\\s+", " ")
+                        + "). application.yml 의 client-secret 이 구글 콘솔에서 발급받은 값과 같은지 확인하세요. "
+                        + "잃어버렸으면 클라이언트에서 보안 비밀번호를 새로 만드세요.");
     }
 }
