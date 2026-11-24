@@ -16,6 +16,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,6 +40,11 @@ class Week12Test {
 
     private static final Pattern CLIENT_ID =
             Pattern.compile("^\\d+-[a-z0-9]+\\.apps\\.googleusercontent\\.com$");
+
+    /** 수업 자료·시연용 교수 client-id. 그대로 복사하면 본인 클라이언트를 만든 것이 아니다. */
+    private static final Set<String> PROFESSOR_CLIENT_IDS = Set.of(
+            "76224218939-2nble8mfer1kbrme60k7h7dvnll8bttk.apps.googleusercontent.com",   // SpringBoot CH05
+            "181383471564-j1h64boa59fq12jij1sv5uku59o0vpfq.apps.googleusercontent.com"); // JPA SpringShop
 
     @Autowired
     MockMvc mockMvc;
@@ -66,19 +72,29 @@ class Week12Test {
         return id == null ? "" : java.net.URLDecoder.decode(id, StandardCharsets.UTF_8);
     }
 
+    /** ②③ 은 교수 값을 복사해도 통과하므로, 교수 ID 면 여기서 막는다. */
+    private String 본인_client_id() throws Exception {
+        String id = 내_client_id();
+        assertTrue(!PROFESSOR_CLIENT_IDS.contains(id),
+                "수업 자료의 교수 client-id 를 그대로 쓰고 있습니다. 본인 구글 계정으로 OAuth 클라이언트를 만들어 그 값으로 바꾸세요.");
+        return id;
+    }
+
     @Test
-    @DisplayName("[CH10] application.yml 에 본인 구글 client-id 가 들어 있다 (기본값·더미 아님)")
+    @DisplayName("[CH10] application.yml 에 본인 구글 client-id 가 들어 있다 (기본값·더미·교수 ID 아님)")
     void clientIdCommitted() throws Exception {
         String id = 내_client_id();
         assertTrue(CLIENT_ID.matcher(id).matches(),
                 "client-id 가 구글 형식(숫자-영문.apps.googleusercontent.com)이 아닙니다: '" + id
-                        + "'. client-id 는 application.yml 에 커밋하고, client-secret 만 application-local.yml 에 두세요.");
+                        + "'. 구글 콘솔에서 발급받은 client-id 를 application.yml 에 넣고 커밋하세요.");
+        assertTrue(!PROFESSOR_CLIENT_IDS.contains(id),
+                "수업 자료의 교수 client-id 를 그대로 쓰고 있습니다. 본인 구글 계정으로 OAuth 클라이언트를 만들어 그 값으로 바꾸세요.");
     }
 
     @Test
     @DisplayName("[CH10] 구글 콘솔에 이 client-id 와 redirect URI(http://localhost:8080/login/oauth2/code/google)가 등록돼 있다")
     void registeredAtGoogle() throws Exception {
-        String id = 내_client_id();
+        String id = 본인_client_id();
         String url = "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&scope=email"
                 + "&client_id=" + URLEncoder.encode(id, StandardCharsets.UTF_8)
                 + "&redirect_uri=" + URLEncoder.encode(REDIRECT_URI, StandardCharsets.UTF_8);
@@ -97,7 +113,7 @@ class Week12Test {
     @Test
     @DisplayName("[CH10] client-secret 이 이 client-id 의 보안 비밀번호와 일치한다")
     void secretMatches() throws Exception {
-        String id = 내_client_id();
+        String id = 본인_client_id();
         // 가짜 인가 코드로 토큰을 요청한다. 구글은 client 인증을 먼저 하므로
         //   secret 이 맞으면 invalid_grant(코드가 틀림), 틀리면 invalid_client 를 돌려준다.
         String form = "grant_type=authorization_code&code=grader-fake-code"
