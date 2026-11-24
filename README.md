@@ -62,3 +62,11 @@ class WeekNNTest {
 |---|---|---|
 | `week03/` | CH05 글 등록 | 1 |
 | `week04/` | CH05 조회 · 수정 · 삭제 | 4 |
+| `week12/` | CH10 구글 로그인 — client-id 커밋 + 구글 콘솔 등록 확인 (실제 로그인은 스크린샷) | 2 |
+
+## CH10 구글 로그인 채점 (week12)
+
+- client-id 는 비밀값이 아니므로 학생이 `application.yml` 에 커밋한다. client-secret 만 `application-local.yml`(gitignore).
+- ① 앱이 구글로 보내는 client_id 가 구글 형식인지 ② 구글이 그 client_id + `http://localhost:8080/login/oauth2/code/google` 을 받아 주는지(로그인 화면으로 이동 vs `/signin/oauth/error`) 확인.
+- secret 은 CI 에 없으므로 실제 로그인 성공은 확인하지 않는다 → 로그인 후 화면 스크린샷으로 별도 확인.
+- 이 테스트만 시큐리티 필터를 켠다(`@AutoConfigureMockMvc` 기본값). 러너에서 accounts.google.com 으로 나가는 네트워크가 필요하다.
